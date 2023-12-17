@@ -1,4 +1,4 @@
-class IEntity {
+class IScript {
     className () {
         return this.prototype.constructor.name;
     }
@@ -7,4 +7,4 @@ class IEntity {
     uuid () {}
 }
 
-module.exports = IEntity;
+module.exports = IScript;
