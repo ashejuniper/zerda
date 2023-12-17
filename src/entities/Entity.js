@@ -1,29 +1,29 @@
 const UUID = require('uuid');
 
 const EntityStatus = require('./EntityStatus');
-const IEntity = require('./IEntity');
+const IScript = require('./IScript');
 
 const entities = {};
 
-const traitPrototypes = {};
+const scriptPrototypes = {};
 
 function createUUID () {
     return UUID.v4();
 }
 
-class Entity extends IEntity {
+class Entity extends IScript {
     static get (uuid) {
         if (!entities.hasOwnProperty(uuid)) return null;
 
         return entities[uuid];
     }
 
-    constructor (...traits) {
+    constructor (...scripts) {
         super();
 
         this.status = EntityStatus.CREATE;
 
-        this.traits = {};
+        this.scripts = {};
 
         this._uuid = createUUID();
 
@@ -39,22 +39,22 @@ class Entity extends IEntity {
             this._onProcessExit
         );
 
-        for (let trait of traits) {
-            this.addTrait(trait);
+        for (let script of scripts) {
+            this.addScript(script);
         }
 
         this.status = EntityStatus.CREATED;
     }
 
-    async addTrait (trait) {
-        const prototype = Object.getPrototypeOf(trait);
+    async addScript (script) {
+        const prototype = Object.getPrototypeOf(script);
 
-        traitPrototypes[prototype.constructor.name] = prototype;
+        scriptPrototypes[prototype.constructor.name] = prototype;
 
-        this.traits[prototype.constructor.name] = trait;
+        this.scripts[prototype.constructor.name] = script;
 
-        await trait.onAdd({});
-        await trait.enable({});
+        await script.attach({});
+        await script.enable({});
     }
 
     async destroy (e) {
@@ -62,9 +62,9 @@ class Entity extends IEntity {
             this._hasBeenDestroyed = true;
         }
 
-        for (const trait of this.traits) {
-            await trait.disable({});
-            await trait.onRemove({});
+        for (const script of this.scripts) {
+            await script.disable({});
+            await script.detach({});
         }
 
         delete entities[this.uuid()];
@@ -74,20 +74,20 @@ class Entity extends IEntity {
         return this;
     }
 
-    async removeTrait (trait) {
-        if (typeof trait === 'string') {
-            trait = this.traits[trait];
+    async removeScript (script) {
+        if (typeof script === 'string') {
+            script = this.scripts[script];
         }
 
-        await trait.disable({});
+        await script.disable({});
 
-        await trait.onRemove({});
+        await script.detach({});
 
-        delete this.traits[trait.className()];
+        delete this.scripts[script.className()];
     }
 
-    async trait ($class) {
-        return this.traits[$class.prototype.constructor.name];
+    async script ($class) {
+        return this.scripts[$class.prototype.constructor.name];
     }
 
     uuid () {
@@ -104,19 +104,19 @@ class Entity extends IEntity {
 
     async _step () {
         if (this.status === EntityStatus.ADD) {
-            for (const trait of this.traits) {
-                await trait.onAdd(e);
+            for (const script of this.scripts) {
+                await script.attach(e);
             }
 
             this.status = EntityStatus.ADD;
         }
         else if (this.status === EntityStatus.ENABLED) {
-            for (const trait of this.traits) {
-                await trait.tick(e);
+            for (const script of this.scripts) {
+                await script.tick(e);
             }
         } else if (this.status === EntityStatus.REMOVE) {
-            for (const trait of this.traits) {
-                await trait.onRemove(e);
+            for (const script of this.scripts) {
+                await script.detach(e);
             }
 
             this.status = EntityStatus.REMOVED;
