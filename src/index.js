@@ -1,10 +1,10 @@
-const assets = require('./traits/assets');
+const assets = require('./scripts/assets');
 const entities = require('./entities');
 const net = require('./net');
 const rendering = require('./rendering');
-const scenes = require('./traits/scenes');
-const structures = require('./traits/structures');
-const terrain = require('./traits/terrain');
+const scenes = require('./scripts/scenes');
+const structures = require('./scripts/structures');
+const terrain = require('./scripts/terrain');
 
 const AppClient = require("./AppClient");
 const AppWindow = require("./AppWindow");
