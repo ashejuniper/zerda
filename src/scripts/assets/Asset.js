@@ -1,5 +1,5 @@
 const glob = require('glob');
-const Trait = require('../Trait');
+const Script = require('../Script');
 
 const assets = {};
 
@@ -21,7 +21,13 @@ function removeAsset (asset) {
     }
 }
 
-class Asset extends Trait {
+class Asset extends Script {
+    constructor (entity = null) {
+        super(entity);
+
+        this._isRegistered = false;
+    }
+
     static get (modName, assetId, assetType) {
         let virtualPath;
 
@@ -31,7 +37,7 @@ class Asset extends Trait {
             virtualPath = `${modName}/${assetId}.${assetType}`;
         }
 
-        return assets[virtualPath];
+        return getAsset(virtualPath);
     }
 
     static async _unloadAll () {
@@ -42,15 +48,23 @@ class Asset extends Trait {
         }
     }
 
+    isRegistered () {
+        return this._isRegistered;
+    }
+
     register (modId, assetId) {
         this.modId = modId;
         this.assetId = assetId;
 
         addAsset(this);
+
+        this._isRegistered = true;
     }
 
     unregister () {
         removeAsset(this);
+
+        this._isRegistered = false;
     }
 
     virtualPath () {
@@ -63,6 +77,8 @@ class Asset extends Trait {
         if (this.isRegistered()) {
             this.unregister();
         }
+
+        console.log(`Image "${this.virtualPath()}" disabled`);
     }
 
     async enable (e) {
@@ -71,6 +87,8 @@ class Asset extends Trait {
         if (!this.isRegistered()) {
             this.register(this.modId, this.assetId);
         }
+
+        console.log(`Image "${this.virtualPath()}" enabled`);
     }
 }
 

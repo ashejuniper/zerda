@@ -5,6 +5,10 @@ const Asset = require('./Asset');
 const Entity = require('../../entities/Entity');
 
 class Image extends Asset {
+    constructor () {
+        super(new Entity());
+    }
+
     static get (modName, assetId) {
         return Asset.get(modName, assetId, 'Image');
     }
@@ -44,7 +48,10 @@ class Image extends Asset {
 
     static loadSync (mod, id, path) {
         const properties = rl.LoadImage(path);
-        const asset = new Image(properties);
+
+        const asset = new Image();
+
+        asset.setProperties(properties);
 
         new Entity(asset);
 
@@ -53,18 +60,8 @@ class Image extends Asset {
         return asset;
     }
 
-    async enable () {
-        this.register(this.modId, this.assetId);
-
-        console.log(`Image "${this.virtualPath()}" enabled`);
-    }
-
-    async disable () {
-        console.log(`Image "${this.virtualPath()}" disabled`);
-
-        this.unregister();
-
-        rl.UnloadImage(this);
+    async enable (e) {
+        super.enable(e);
     }
 
     texture () {
