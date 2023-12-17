@@ -1,2 +1,3 @@
-# tiop
- TIoP | The Isles of Peridot | Open world | Rogue-like dungeon crawler
+# Zerda
+
+Zerda is a game engine written in Node.js.
