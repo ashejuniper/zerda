@@ -2,7 +2,7 @@ const brain = require('brain.js');
 const { GPU } = require('gpu.js');
 const rl = require('raylib');
 
-const { AssetLoader } = require('./traits/assets');
+const { AssetLoader } = require('./scripts/assets');
 const UserInput = require('./user-input');
 
 class AppWindow {
