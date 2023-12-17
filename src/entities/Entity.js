@@ -86,8 +86,8 @@ class Entity extends IScript {
         delete this.scripts[script.className()];
     }
 
-    async script ($class) {
-        return this.scripts[$class.prototype.constructor.name];
+    async script (scriptName) {
+        return this.scripts[scriptName];
     }
 
     uuid () {
