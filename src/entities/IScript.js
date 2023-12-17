@@ -4,6 +4,11 @@ class IScript {
     }
 
     entity () {}
+
+    script (scriptName) {
+        return this.entity().script(scriptName);
+    }
+
     uuid () {}
 }
 
