@@ -5,6 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "build": "pkg src/bin/client.js -o Zerda.Engine -t node18",
+    "buildAll": "pkg src/bin/client.js -o Zerda.Engine -t node18-darwin-x64,node18-linux-x64,node18-win-x64,node18-win-arm64",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
