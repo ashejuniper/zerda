@@ -1,7 +1,9 @@
-const Entity = require('core/scripts/Entity.js');
-const IEntity = require('core/scripts/IEntity.js');
+const Entity = require('./Entity');
+const IEntity = require('./IEntity');
+const Script = require('./Script');
 
 module.exports = {
     Entity,
-    IEntity
+    IEntity,
+    Script
 };

@@ -1,12 +1,8 @@
-const UUID = {
-    v4: __UUID_v4
-}
+const EntityStatus = require('./EntityStatus');
+const IEntity = require('./IEntity');
 
-const EntityStatus = require('core/scripts/EntityStatus.js');
-const IEntity = require('core/scripts/IEntity.js');
-
-// const Renderer = require('../scripts/rendering/Renderer');
-// const Transform = require('../scripts/Transform');
+const Renderer = require('./rendering/Renderer');
+const Transform = require('./Transform');
 
 const entities = {};
 
@@ -271,7 +267,10 @@ class Entity extends IEntity {
     }
 
     async _initialize (...scripts) {
-        this.addScripts(new Transform());
+        this.addScripts(
+            new Transform(),
+            new Renderer()
+        );
 
         for (let script of scripts) {
             this.addScript(script);

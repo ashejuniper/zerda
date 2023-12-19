@@ -15,16 +15,33 @@ const { existsSync, readFileSync } = require('fs');
 const IsolatedVM = require('isolated-vm');
 const assert = require('assert');
 
-function __JS__resolveSpecifier (specifier) {
-    if (specifier.includes('/')) {
-        let $module = null;
+const __REQUIRE__uuid = require('uuid');
 
-        const modulePath = path.resolve(
-            path.join(
-                'assets',
-                specifier
-            )
-        );
+function __JS__resolveSpecifier (specifier, dirname) {
+    let modulePath = './index.js';
+
+    if (specifier.includes('/')) {
+        if (specifier.startsWith('./')) {
+            modulePath = path.resolve(
+                path.join(
+                    dirname,
+                    specifier
+                )
+            );
+        } else {
+            modulePath = path.resolve(
+                path.join(
+                    'assets',
+                    specifier
+                )
+            );
+        }
+
+        if (existsSync(modulePath + '.js')) {
+            modulePath += '.js';
+        } else if (existsSync(modulePath + '.mjs')) {
+            modulePath += '.mjs';
+        }
 
         return modulePath;
     } else {
@@ -82,10 +99,22 @@ class ScriptVM extends Script {
         return await globals.get(key);
     }
 
+    getGlobalSync (key) {
+        const globals = this._context.global;
+
+        return globals.getSync(key);
+    }
+
     async setGlobal (key, value) {
         const globals = this._context.global;
 
         await globals.set(key, value);
+    }
+
+    setGlobalSync (key, value) {
+        const globals = this._context.global;
+
+        globals.setSync(key, value);
     }
 
     loadModule (
@@ -107,35 +136,44 @@ class ScriptVM extends Script {
             );
         } else if (existsSync(`${modulePath}.js`)) {
             code = readFileSync(
-                modulePath,
+                modulePath += '.js',
                 'utf-8'
             );
         } else if (existsSync(`${modulePath}.mjs`)) {
             code = readFileSync(
-                modulePath,
+                modulePath += '.mjs',
                 'utf-8'
             );
         }
 
-        const filename = path.basename(modulePath);
+        const dirname = path.dirname(modulePath);
 
-        console.debug(`[${modulePath}]`);
+        let filename = path.basename(modulePath);
 
         const actualCode = `
 (
     function () {
-        module.__path = "${modulePath}";
+        __JS__setGlobal('__dirname', "${dirname}");
+        __JS__setGlobal('__filename', "${filename}");
+
+        module.path = __dirname;
+        module.filename = __filename;
 
         ${code}\n;
 
-        // __JS__.registerModule(module);
-
-        // log(module.__path)
+        __JS__.registerModule(module);
     }
 )();
 `;
 
         try {
+            this._defineGlobals(
+                {
+                    dirname,
+                    filename
+                }
+            );
+
             this._context.evalSync(
                 actualCode,
                 options
@@ -150,15 +188,7 @@ __JS__.modules["${modulePath}"] = module;
 
 __JS__clearModule();
 `
-            )
-
-            console.log(`MODULE: [${modulePath}]`);
-
-            // this._loadedScripts[scriptKey] = result;
-
-            // console.log(`MODULE: [${modulePath}]`, result);
-
-            // return result;
+            );
         } catch (error) {
             if (
                 !options.hasOwnProperty('ignoreErrors')
@@ -168,8 +198,6 @@ __JS__clearModule();
 
                 throw error;
             }
-
-            // return null;
         }
     }
 
@@ -244,6 +272,37 @@ __JS__clearModule();
                     );
     }
 
+    _defineGlobals (globals = {}) {
+        const tasks = [];
+
+        this._context.global.setSync(
+            '__dirname',
+            globals.dirname
+        );
+
+        this._context.global.setSync(
+            '__filename',
+            globals.filename
+        );
+
+        this._context.global.setSync(
+            '__REQUIRE__path__join',
+            path.join
+        );
+
+        this._context.global.setSync(
+            '__REQUIRE__path__resolve',
+            path.resolve
+        );
+
+        this.evalSync(`
+__REQUIRE__path = {};
+
+__REQUIRE__path.join = __REQUIRE__path__join;
+__REQUIRE__path.resolve = __REQUIRE__path__resolve;
+        `);
+    }
+
     async _initializeContext () {
         this._context = await this._isolate.createContext();
 
@@ -256,23 +315,36 @@ const __JS__ = {};
 __JS__.modules = {};
 
 __JS__.registerModule = function (module) {
-    __JS__.modules[module.path] = module;
+    const path = require('path');
+
+    const modulePath = path.resolve(
+        path.join(
+            module.path,
+            '/',
+            module.filename
+        )
+    );
+
+    __JS__.modules[modulePath] = module;
 }
 
 function require (specifier) {
-    const modulePath = __JS__resolveSpecifier(specifier);
+    switch (specifier) {
+        case 'path':
+            return __REQUIRE__path;
+        default:
+            break;
+    }
+
+    const modulePath = __JS__resolveSpecifier(specifier, __dirname);
 
     if (
         !modulePath
             || !__JS__.modules[modulePath]
-            || !__JS__.modules[modulePath].exports
+            || !__JS__.modules[modulePath].hasOwnProperty('exports')
     ) {
         __JS__loadModule(modulePath);
     }
-
-    log('')
-    log(JSON.stringify(__JS__.modules[modulePath]))
-    log('')
 
     return __JS__.modules[modulePath].exports;
 }
@@ -297,6 +369,24 @@ function require (specifier) {
             '__JS__resolveSpecifier',
             __JS__resolveSpecifier
         );
+
+        await this.setGlobal(
+            '__JS__setGlobal',
+            (key, value) => {
+                this.setGlobalSync(key, value);
+            }
+        );
+
+        await this.setGlobal(
+            '__UUID_v4',
+            __REQUIRE__uuid.v4
+        );
+
+        this.evalSync(`
+const UUID = {
+    v4: __UUID_v4
+};
+`)
 
         await this.setGlobal(
             'exit',
