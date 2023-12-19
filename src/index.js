@@ -7,7 +7,7 @@ const structures = require('./scripts/structures');
 const terrain = require('./scripts/terrain');
 
 const AppClient = require("./AppClient");
-const AppWindow = require("./AppWindow");
+const Application = require("./Application");
 const ServerClient = require("./ServerClient");
 
 module.exports = {
@@ -26,6 +26,6 @@ module.exports = {
     terrain,
     ...terrain,
     AppClient,
-    AppWindow,
+    Application,
     ServerClient
 };
