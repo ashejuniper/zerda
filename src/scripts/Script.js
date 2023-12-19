@@ -1,54 +1,38 @@
-const Entity = require("../entities/Entity");
-const IScript = require("../entities/IScript");
-const ScriptStatus = require("./ScriptStatus");
+const IEntity = require('../entities/IEntity');
 
-class Script extends IScript {
-    constructor (entity = null) {
+const registeredScripts = {};
+
+class Script extends IEntity {
+    static register ($class) {
+        registeredScripts[$class.constructor.name] = $class;
+    }
+
+    constructor () {
         super();
 
-        if (typeof entity !== 'object' || entity === null || !(entity instanceof Entity)) {
-            entity = new Entity();
-        }
-
-        this._entity = entity;
-
-        this.status = ScriptStatus.ADD;
-    }
-
-    async attach (e) {}
-    async detach (e) {}
-
-    async disable (e) {
-        this._isEnabled = false;
-    }
-
-    async enable (e) {
-        this._isEnabled = true;
+        this.__entity__ = null;
     }
 
     entity () {
-        return this._entity;
+        return this.__entity__;
     }
 
-    isEnabled () {
-        return this._isEnabled;
+    async onAttach (e) {
+        this.__entity__ = e.entity;
     }
 
-    async render (e) {}
+    async onDetach (e) {}
+    async onDisable (e) {}
+    async onEnable (e) {}
 
     setProperties (properties) {
-        if (typeof properties === 'object' && properties !== null) {
-            for (let key in properties) {
-                this[key] = properties[key];
-            }
+        for (const key in properties) {
+            this[key] = properties[key];
         }
     }
 
-    async tick (e) {}
-
-    uuid () {
-        return this.entity().uuid();
-    }
+    async onRender (e) {}
+    async onTick (e) {}
 }
 
 module.exports = Script;
