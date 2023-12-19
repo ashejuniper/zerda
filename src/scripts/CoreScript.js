@@ -1,8 +1,10 @@
-const IEntity = require('../entities/IEntity');
+const { v4: uuidv4 } = require('uuid');
+
+const IEntity = require('../../assets/core/scripts/IEntity');
 
 const registeredScripts = {};
 
-class Script extends IEntity {
+class CoreScript extends IEntity {
     static register ($class) {
         registeredScripts[$class.constructor.name] = $class;
     }
@@ -11,6 +13,8 @@ class Script extends IEntity {
         super();
 
         this.__entity__ = null;
+
+        this._uuid = uuidv4();
     }
 
     entity () {
@@ -33,6 +37,10 @@ class Script extends IEntity {
 
     async onRender (e) {}
     async onTick (e) {}
+
+    uuid () {
+        return this._uuid;
+    }
 }
 
-module.exports = Script;
+module.exports = CoreScript;
