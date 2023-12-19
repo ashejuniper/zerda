@@ -14,6 +14,9 @@ dependencies:
   gpu.js:
     specifier: ^2.16.0
     version: 2.16.0
+  isolated-vm:
+    specifier: ^4.6.0
+    version: 4.6.0
   jimp:
     specifier: ^0.22.10
     version: 0.22.10
@@ -985,6 +988,14 @@ packages:
 
   /isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
+    dev: false
+
+  /isolated-vm@4.6.0:
+    resolution: {integrity: sha512-MEnfC/54q5PED3VJ9UJYJPOlU6mYFHS3ivR9E8yeNNBEFRFUNBnY0xO4Rj3D/SOtFKPNmsQp9NWUYSKZqAoZiA==}
+    engines: {node: '>=16.0.0'}
+    requiresBuild: true
+    dependencies:
+      prebuild-install: 7.1.1
     dev: false
 
   /isomorphic-fetch@3.0.0:
