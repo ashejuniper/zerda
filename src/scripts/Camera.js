@@ -1,8 +1,8 @@
 const rl = require('raylib');
 
-const Script = require("./Script");
+const CoreScript = require("./CoreScript");
 
-class Camera extends Script {
+class Camera extends CoreScript {
     constructor () {
         super();
 

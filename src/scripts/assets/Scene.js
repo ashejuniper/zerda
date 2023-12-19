@@ -1,4 +1,4 @@
-const Script = require("../Script");
+const Script = require("../CoreScript");
 
 class Scene extends Script {
     constructor () {
