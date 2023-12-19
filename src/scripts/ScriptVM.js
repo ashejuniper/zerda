@@ -11,9 +11,26 @@ const Image = require('./assets/Image');
 const Scene = require('./assets/Scene');
 const ScriptAsset = require('./assets/ScriptAsset');
 const Entity = require('../entities/Entity');
-const { existsSync } = require('fs');
+const { existsSync, readFileSync } = require('fs');
 const IsolatedVM = require('isolated-vm');
 const assert = require('assert');
+
+function __JS__resolveSpecifier (specifier) {
+    if (specifier.includes('/')) {
+        let $module = null;
+
+        const modulePath = path.resolve(
+            path.join(
+                'assets',
+                specifier
+            )
+        );
+
+        return modulePath;
+    } else {
+        return specifier;
+    }
+}
 
 class ScriptVM extends Script {
     constructor () {
@@ -55,6 +72,10 @@ class ScriptVM extends Script {
         await this._context.eval(code);
     }
 
+    evalSync (code) {
+        this._context.evalSync(code);
+    }
+
     async getGlobal (key) {
         const globals = this._context.global;
 
@@ -67,7 +88,7 @@ class ScriptVM extends Script {
         await globals.set(key, value);
     }
 
-    async loadModule (
+    loadModule (
         modulePath,
         options = {}
     ) {
@@ -80,84 +101,75 @@ class ScriptVM extends Script {
         let code = '';
 
         if (existsSync(`${modulePath}`)) {
-            code = await readFile(
+            code = readFileSync(
                 modulePath,
                 'utf-8'
             );
         } else if (existsSync(`${modulePath}.js`)) {
-            code = await readFile(
+            code = readFileSync(
                 modulePath,
                 'utf-8'
             );
         } else if (existsSync(`${modulePath}.mjs`)) {
-            code = await readFile(
+            code = readFileSync(
                 modulePath,
                 'utf-8'
             );
         }
 
-        let $module = null;
-
         const filename = path.basename(modulePath);
 
         console.debug(`[${modulePath}]`);
 
+        const actualCode = `
+(
+    function () {
+        module.__path = "${modulePath}";
+
+        ${code}\n;
+
+        // __JS__.registerModule(module);
+
+        // log(module.__path)
+    }
+)();
+`;
+
         try {
-            $module = await this._isolate.compileModule(
-                code,
-                {
-                    filename
-                }
+            this._context.evalSync(
+                actualCode,
+                options
             );
 
-            const inst = await $module.instantiate(
-                this._context,
-                async (specifier, referrer) => {
-                    if (specifier.includes('/')) {
-                        let $module = null;
 
-                        const modulePath = path.resolve(
-                            path.join(
-                                'assets',
-                                specifier
-                            )
-                        );
+            this._loadedScripts[scriptKey] = true;
 
-                        $module = await this.loadModule(modulePath);
+            this._context.evalSync(
+`
+__JS__.modules["${modulePath}"] = module;
 
-                        console.log(`IMPORT: [${modulePath}]`, $module);
+__JS__clearModule();
+`
+            )
 
-                        return $module;
-                    } else {
-                        try {
-                            return await this._context.eval(
-                                `__NODEJS_REQUIRE__('${specifier}')`
-                            )
-                        } catch (error) {
-                            return null;
-                        }
-                    }
-                }
-            );
+            console.log(`MODULE: [${modulePath}]`);
 
-            const result = await $module.evaluate();
+            // this._loadedScripts[scriptKey] = result;
 
-            this._loadedScripts[scriptKey] = result;
+            // console.log(`MODULE: [${modulePath}]`, result);
 
-            console.log(`MODULE: [${modulePath}]`, result);
-
-            return $module;
+            // return result;
         } catch (error) {
             if (
                 !options.hasOwnProperty('ignoreErrors')
                 || !options.ignoreErrors
             ) {
-                console.error(`ERROR: ("${modulePath}"): ${error.message}`);
+                console.error(`ERROR: ("${modulePath}")`);
+
+                throw error;
             }
 
-            throw error;
-
-            // return await this._context.eval("{}");
+            // return null;
         }
     }
 
@@ -200,7 +212,7 @@ class ScriptVM extends Script {
             packageMainPath
         );
 
-        return await this.loadModule(
+        return this.loadModule(
             modulePath,
             options
         );
@@ -216,14 +228,81 @@ class ScriptVM extends Script {
         }
     }
 
+    _clearModule () {
+        this.evalSync(
+            `
+            module = {
+                id: '',
+                path: '',
+                exports: {},
+                filename: '',
+                loaded: false,
+                children: [],
+                paths: []
+            };\n
+            `
+                    );
+    }
+
     async _initializeContext () {
         this._context = await this._isolate.createContext();
 
-        // await this.eval('module = {};\n');
+        this._clearModule();
+
+        await this.eval(
+`
+const __JS__ = {};
+
+__JS__.modules = {};
+
+__JS__.registerModule = function (module) {
+    __JS__.modules[module.path] = module;
+}
+
+function require (specifier) {
+    const modulePath = __JS__resolveSpecifier(specifier);
+
+    if (
+        !modulePath
+            || !__JS__.modules[modulePath]
+            || !__JS__.modules[modulePath].exports
+    ) {
+        __JS__loadModule(modulePath);
+    }
+
+    log('')
+    log(JSON.stringify(__JS__.modules[modulePath]))
+    log('')
+
+    return __JS__.modules[modulePath].exports;
+}
+`
+        );
+
+        await this.setGlobal(
+            '__JS__clearModule',
+            () => {
+                this._clearModule();
+            }
+        );
+
+        await this.setGlobal(
+            '__JS__loadModule',
+            (modulePath) => {
+                this.loadModule(modulePath);
+            }
+        );
+
+        await this.setGlobal(
+            '__JS__resolveSpecifier',
+            __JS__resolveSpecifier
+        );
 
         await this.setGlobal(
             'exit',
-            () => {
+            (exitCode) => {
+                ScriptVM.main._exitCode = exitCode;
+
                 ScriptVM.main._shouldAppExit = true;
             }
         );
