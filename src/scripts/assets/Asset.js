@@ -1,6 +1,6 @@
 const path = require('path');
 const { glob } = require('glob');
-const Script = require('../Script');
+const CoreScript = require('../CoreScript');
 
 const assets = {};
 
@@ -44,7 +44,7 @@ function removeAsset (asset) {
     }
 }
 
-class Asset extends Script {
+class Asset extends CoreScript {
     constructor () {
         super();
 
