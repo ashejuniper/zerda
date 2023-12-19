@@ -1,13 +1,13 @@
 const minimist = require('minimist');
 
-const AppClient = require('../AppClient');
+const Application = require('../Application');
 
 const args = minimist(process.argv.splice(2));
 
 async function main (args) {
-    let client = new AppClient();
+    let app = new Application('Zerda');
 
-    await client.start();
+    await app.start();
 }
 
 main(args);
