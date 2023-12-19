@@ -1,5 +1,6 @@
 # Assets
-/assets/
+/assets/*
+!/assets/core/
 
 # Logs
 logs
