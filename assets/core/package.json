@@ -1,0 +1,7 @@
+{
+    "name": "core",
+    "main": "scripts/index.js",
+    "dependencies": {
+        "core": "^0.0.0-alpha"
+    }
+}
