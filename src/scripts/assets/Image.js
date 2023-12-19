@@ -1,12 +1,10 @@
-const path = require('path');
-const { glob } = require('glob');
 const rl = require('raylib');
 const Asset = require('./Asset');
-const Entity = require('../../entities/Entity');
+const Scene = require('./Scene');
 
 class Image extends Asset {
     constructor () {
-        super(new Entity());
+        super();
     }
 
     static get (modName, assetId) {
@@ -14,54 +12,42 @@ class Image extends Asset {
     }
 
     static async _loadAll () {
-        console.log('Loading images...');
-
-        const assetDirectories = await glob("assets/*/");
-
-        for (const assetDirectory of assetDirectories) {
-            const modName = path.basename(assetDirectory);
-
-            console.log(`  Loading images for mod '${modName}'...`);
-
-            if (modName !== 'Image') {
-                const assetPaths = [
-                    ...(await glob(`${assetDirectory}/Image/**/*.bmp`)),
-                    ...(await glob(`${assetDirectory}/Image/**/*.jpeg`)),
-                    ...(await glob(`${assetDirectory}/Image/**/*.jpg`)),
-                    ...(await glob(`${assetDirectory}/Image/**/*.png`))
-                ];
-
-                for (const assetPath of assetPaths) {
-                    const assetId = path.basename(assetPath)
-                        .replaceAll('.bmp', '')
-                        .replaceAll('.jpeg', '')
-                        .replaceAll('.jpg', '')
-                        .replaceAll('.png', '');
-
-                    console.log(`    Loading image "assets://${modName}/Image/${assetId}"...`);
-
-                    void Image.loadSync(modName, assetId, assetPath);
-                }
+        await Asset.forEachFile(
+            'Image',
+            [
+                'bmp',
+                'jpeg',
+                'jpg',
+                'png'
+            ],
+            async (e) => {
+                void await Image.load(
+                    e.modName,
+                    e.assetId,
+                    e.assetPath
+                );
             }
-        }
+        );
     }
 
-    static loadSync (mod, id, path) {
+    static async load (mod, id, path) {
         const properties = rl.LoadImage(path);
 
         const asset = new Image();
 
+        asset.modId = mod;
+        asset.assetId = id;
+        asset.path = path;
+
         asset.setProperties(properties);
 
-        new Entity(asset);
-
-        asset.register(mod, id);
+        await Scene.main.createChild(asset);
 
         return asset;
     }
 
-    async enable (e) {
-        super.enable(e);
+    async onEnable (e) {
+        super.onEnable(e);
     }
 
     texture () {
